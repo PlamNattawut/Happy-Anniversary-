@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ถึงคุณชมพูนุช ศรีด้วง</title>
+    <style>
+        /* 1. สไตล์พื้นฐานแบบ iOS และมินิมอล */
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            user-select: none; /* ป้องกันการคลุมดำตัวหนังสือ */
+        }
+
+        body {
+            background-color: #f7f7f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 2. จำลองหน้าจอขนาด iPhone 13 */
+        .iphone-container {
+            width: 100%;
+            max-width: 390px;
+            height: 100vh;
+            max-height: 844px;
+            background-color: #f3dcd7;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.6s ease;
+            
+            @media (min-width: 400px) {
+                border-radius: 40px;
+                height: 90vh;
+            }
+        }
+
+        /* 3. ส่วนเอฟเฟคพื้นหลัง (หัวใจร่วงหล่น) */
+        #particle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* 4. อนิเมชั่นเริ่มหน้าเว็บแบบมินิมอล */
+        @keyframes fadeInSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 5. หน้า Login - จัดสไตล์ให้เหมือนรูปภาพ */
+        #login-screen {
+            position: relative;
+            z-index: 10;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            text-align: center;
+            opacity: 0;
+            animation: fadeInSlideUp 0.7s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+            animation-delay: 0.3s;
+        }
+
+        /* กรอบดอกไม้และหัวใจแบบในรูป */
+        #login-screen::before,
+        #login-screen::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* มุมดอกไม้ทองแบบในรูป (ใช้ Pseudo elements) */
+        #login-screen::before {
+            border-top: 2px solid #e0c7a8; /* สีทองอ่อนๆ */
+            border-bottom: 2px solid #e0c7a8;
+            border-radius: 20px;
+        }
+
+        /* สัญลักษณ์หัวใจที่มุม */
+        #login-screen .decorative-heart {
+            position: absolute;
+            font-size: 14px;
+            color: #e0c7a8;
+        }
+        #login-screen .heart-tl { top: 15px; left: 15px; }
+        #login-screen .heart-tr { top: 15px; right: 15px; }
+        #login-screen .heart-bl { bottom: 15px; left: 15px; }
+        #login-screen .heart-br { bottom: 15px; right: 15px; }
+
+        /* รูปหัวใจล็อคคู่และโบว์สีแดง */
+        .heart-locked {
+            font-size: 80px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            color: #e0c7a8; /* สีทอง */
+            position: relative;
+        }
+        .heart-locked::before {
+            content: '🎀'; /* โบว์สีแดง */
+            font-size: 30px;
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        h1.anniversary-title {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(to bottom, #d9a066, #ffb3a1); /* สีทองชมพูไล่เฉด */
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+            letter-spacing: -1px;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: #8e8e93;
+            margin-bottom: 35px;
+            font-weight: 400;
+        }
+
+        /* กล่องใส่รหัสผ่าน */
+        .input-group {
+            width: 100%;
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        input[type="password"] {
+            width: 100%;
+            padding: 16px;
+            font-size: 16px;
+            border: 1px solid #d1d1d6;
+            border-radius: 14px;
+            text-align: center;
+            outline: none;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+            /* ป้องกันพื้นหลังโปร่งใสทับกับ Canvas */
+            background-color: white; 
+        }
+
+        input[type="password"]:focus {
+            border-color: #ff2d55;
+            box-shadow: 0 0 0 4px rgba(255, 45, 85, 0.1);
+        }
+
+        /* สั่นเบาๆ ตอนรหัสผิด */
+        @keyframes errorShake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+            20%, 40%, 60%, 80% { transform: translateX(4px); }
+        }
+
+        .input-error {
+            animation: errorShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+            border-color: #ff3b30 !important;
+            box-shadow: 0 0 0 4px rgba(255, 59, 48, 0.1) !important;
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            font-size: 17px;
+            font-weight: 600;
+            color: #ffffff;
+            background-color: #ff2d55; /* สีชมพูอมแดงแบบมินิมอลรักๆ */
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        button:active {
+            transform: scale(0.97);
+            opacity: 0.9;
+        }
+
+        .error-message {
+            color: #ff3b30;
+            font-size: 14px;
+            margin-top: 15px;
+            display: none; /* ซ่อนไว้ */
+            animation: fadeInSlideUp 0.3s ease-out;
+        }
+
+        /* อิโมจิน่ารักๆ แบบในรูป */
+        .emoji-row {
+            margin-top: 20px;
+            font-size: 24px;
+            display: flex;
+            gap: 10px;
+        }
+
+        /* 6. หน้าหลัก (Gallery Screen) - อัปเกรดใหม่ */
+        #main-screen {
+            flex: 1;
+            display: none; /* ซ่อนไว้ก่อน */
+            opacity: 0;
+            overflow-y: scroll; /* ให้เลื่อนเฉพาะส่วนนี้ */
+            position: relative;
+            z-index: 5;
+            -webkit-overflow-scrolling: touch; /* เลื่อนแบบนุ่มนวลบน iOS */
+        }
+
+        .gallery-content {
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .welcome-message {
+            font-size: 20px;
+            color: #1c1c1e;
+            line-height: 1.6;
+            margin-bottom: 50px;
+            font-weight: 500;
+            text-align: center;
+            max-width: 90%;
+            letter-spacing: -0.5px;
+            animation: fadeInSlideUp 0.8s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+            animation-delay: 0.1s;
+        }
+
+        /* 7. Gallery จัดแบบขั้นบันไดสลับซ้ายขวา (Zigzag) */
+        .gallery {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            padding-bottom: 50px;
+        }
+
+        .gallery-item {
+            width: 65%; /* ขนาดรูป */
+            border-radius: 20px;
+            overflow: visible; /* ให้เอฟเฟคอิโมจิเกาะล้นออกมาได้ */
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+            position: relative; /* สำหรับจัดตำแหน่งอิโมจิเกาะ */
+            cursor: pointer; /* ทำให้รู้ว่าคลิกได้ */
+            
+            /* เตรียมสำหรับอนิเมชั่นตอนเลื่อน */
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+            transition: opacity 0.6s cubic-bezier(0.23, 1, 0.32, 1), 
+                        transform 0.6s cubic-bezier(0.23, 1, 0.32, 1), 
+                        box-shadow 0.3s ease;
+        }
+
+        /* สไตล์ตอนที่อนิเมชั่นเข้ามา */
+        .animate-in {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        /* คลาสสลับซ้าย-ขวาแบบขั้นบันได */
+        .gallery-item:nth-child(odd) {
+            align-self: flex-start; /* รูปคี่ ชิดซ้าย */
+            transform-origin: left bottom; /* หมุนจากซ้ายล่าง */
+        }
+
+        .gallery-item:nth-child(even) {
+            align-self: flex-end; /* รูปคู่ ชิดขวา */
+            transform-origin: right bottom; /* หมุนจากขวาล่าง */
+        }
+
+        /* อิโมจิน่ารักๆ เกาะตรงรูปภาพ - ใหม่! */
+        .gallery-item::after {
+            content: var(--clinging-emoji, '✨');
+            position: absolute;
+            font-size: 30px;
+            transition: transform 0.3s ease;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+        }
+
+        /* กำหนดตำแหน่งเกาะสำหรับรูปคี่ (ชิดซ้าย) */
+        .gallery-item:nth-child(odd)::after {
+            top: -15px;
+            right: -15px;
+            transform: rotate(15deg);
+        }
+
+        /* กำหนดตำแหน่งเกาะสำหรับรูปคู่ (ชิดขวา) */
+        .gallery-item:nth-child(even)::after {
+            bottom: -15px;
+            left: -15px;
+            transform: rotate(-15deg);
+        }
+
+        /* ลูกเล่นตอนเอามือไปวางหรือคลิก */
+        .gallery-item:hover {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-3px) scale(1.02) !important;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: auto;
+            border-radius: 20px;
+            display: block;
+        }
+
+        /* 8. Lightbox Overlay (สำหรับดูภาพขยาย) - ใหม่! */
+        #lightbox {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            display: none; /* ซ่อนไว้ก่อน */
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            cursor: pointer; /* คลิกเพื่อปิด */
+        }
+
+        #lightbox-img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        #lightbox.open {
+            display: flex;
+            opacity: 1;
+        }
+
+        #lightbox.open #lightbox-img {
+            transform: scale(1);
+        }
+
+        #close-lightbox {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="iphone-container">
+        <canvas id="particle-canvas"></canvas>
+
+        <div id="login-screen">
+            <span class="decorative-heart heart-tl">💙</span>
+            <span class="decorative-heart heart-tr">💗</span>
+            <span class="decorative-heart heart-bl">💙</span>
+            <span class="decorative-heart heart-br">💗</span>
+
+            <div class="heart-locked">💙💗</div>
+            
+            <h1 class="anniversary-title">Happy Anniversary</h1>
+            <p class="subtitle">ใส่รหัสผ่านสำคัญของเรา</p>
+            
+            <div class="input-group">
+                <input type="password" id="password-input" placeholder="0000" maxlength="4">
+            </div>
+            
+            <button onclick="checkPassword()">ยืนยัน</button>
+            
+            <p id="error-msg" class="error-message">รหัสสำคัญก็ยังจำไม่ได้หรอ</p>
+
+            <div class="emoji-row">
+                <span>🎉</span><span>💖</span><span>💑</span><span>🎂</span><span>🧸</span><span>💍</span>
+            </div>
+        </div>
+
+        <div id="main-screen">
+            <div class="gallery-content">
+                <p class="welcome-message">ขอบคุณนะที่อยู่ด้วยกันมาตลอด<br>ดีใจมากๆเลยที่มีกันอยู่ข้างๆ 🤍💑</p>
+                
+                <div class="gallery" id="image-gallery">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="lightbox" onclick="closeLightbox()">
+        <span id="close-lightbox">&times;</span>
+        <img id="lightbox-img" src="" alt="Zoomed Memory">
+    </div>
+
+    <script>
+        // --- ส่วนที่คุณสามารถแก้ไขได้ ---
+
+        // 1. ตั้งรหัสผ่านที่นี่
+        const SECRET_PASSWORD = "2001"; 
+
+        // 2. ลิงก์รูปภาพคู่ของคุณที่นี่ (จัดเตรียม 20 รูป)
+        // เพื่อให้ดูมินิมอล ผมจัดเป็น placeholder ที่มีขนาดต่างกันเล็กน้อยให้ดูเป็นขั้นบันไดครับ
+        // *คุณต้องเปลี่ยนลิงก์เหล่านี้เป็นลิงก์รูปภาพของคุณจริงๆ!*
+        const myImages = [
+            "pic01.jpg",
+            "pic02.jpg",   
+            "pic03.jpg",   
+            "pic04.jpg",   
+            "pic05.jpg",   
+            "pic06.jpg",   
+            "pic07.jpg",   
+            "pic08.jpg",   
+            "pic09.jpg",   
+            "pic10.jpg",   
+            "pic11.jpg",      
+            "pic12.jpg",   
+            "pic13.jpg",   
+            "pic14.jpg",   
+            "pic15.jpg",   
+            "pic16.jpg",   
+            "pic17.jpg",   
+            "pic18.jpg",   
+            "pic19.jpg",   
+            "pic20.jpg",
+            "pic21.jpg",
+            "pic22.jpg",
+            "pic23.jpg",
+            "pic24.jpg",
+            "pic25.jpg",
+            "pic26.jpg",
+            "pic27.jpg",
+
+
+        ];
+        
+        // 3. อิโมจิน่ารักๆ ที่จะเกาะรูปภาพ (จะถูกสุ่มใช้)
+        const clingingEmojis = ['🥰', '💖', '🌟', '🐱', '🐶', '🍕', '🍰', '💍', '☁️', '🌈'];
+        // ----------------------------------
+
+        // ฟังก์ชันตรวจสอบรหัส
+        function checkPassword() {
+            const inputField = document.getElementById('password-input');
+            const errorMsg = document.getElementById('error-msg');
+            const loginScreen = document.getElementById('login-screen');
+            const mainScreen = document.getElementById('main-screen');
+            const iphoneContainer = document.querySelector('.iphone-container');
+
+            if (inputField.value === SECRET_PASSWORD) {
+                // ถ้ารหัสถูก
+                // 1. เพิ่มอนิเมชั่นจางหายไปของหน้า login
+                loginScreen.style.animation = 'fadeInSlideUp 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) reverse forwards';
+                
+                // 2. รอเวลาให้อนิเมชั่นจางหายทำงานเสร็จ แล้วค่อยเปลี่ยนหน้า
+                setTimeout(() => {
+                    loginScreen.style.display = 'none';
+                    mainScreen.style.display = 'block';
+                    
+                    // ใหม่: เปลี่ยนพื้นหลังเป็นสีชมพูอ่อน
+                    iphoneContainer.style.backgroundColor = '#fff0f3'; 
+                    
+                    loadGallery(); // โหลดรูป
+                    
+                    // 3. เริ่มอนิเมชั่นปรากฏของหน้าหลัก
+                    setTimeout(() => {
+                        mainScreen.style.opacity = '1';
+                        mainScreen.style.transition = 'opacity 0.6s ease';
+                        
+                        // 4. สั่งเริ่มอนิเมชั่นของรูปภาพทั้งหมด (ตามลำดับ staggered)
+                        animateImagesOnLoad();
+                    }, 10);
+                }, 500);
+
+            } else {
+                // ถ้ารหัสผิด
+                // 1. เพิ่มคลาสสั่นที่ช่องใส่รหัส
+                inputField.classList.add('input-error');
+                
+                // 2. โชว์ข้อความแจ้งเตือน (แต่ให้ซ่อนก่อนแป๊บนึงเพื่ออนิเมชั่นเด้งใหม่ได้)
+                errorMsg.style.display = 'none';
+                setTimeout(() => errorMsg.style.display = 'block', 10);
+                
+                // 3. เอาคลาสสั่นออกหลังจากอนิเมชั่นทำงานจบ เพื่อให้ทำงานใหม่ได้
+                setTimeout(() => {
+                    inputField.classList.remove('input-error');
+                    inputField.focus(); // เอาเมาส์กลับมาที่ช่องเดิม
+                    inputField.value = ''; // ล้างรหัสออก
+                }, 400); 
+            }
+        }
+
+        // ฟังก์ชันโหลดรูปภาพเข้า Gallery และเพิ่มอิโมจิเกาะ
+        function loadGallery() {
+            const galleryContainer = document.getElementById('image-gallery');
+            galleryContainer.innerHTML = ''; // เคลียร์รูปเก่า (ถ้ามี)
+
+            myImages.forEach((imgUrl, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'gallery-item';
+                itemDiv.style.transitionDelay = `${index * 120}ms`; // delay เพิ่มตามลำดับ
+                
+                // สุ่มอิโมจิเกาะจากรายการ
+                const randomEmoji = clingingEmojis[Math.floor(Math.random() * clingingEmojis.length)];
+                itemDiv.style.setProperty('--clinging-emoji', `'${randomEmoji}'`);
+                
+                // เพิ่มฟังก์ชันคลิกเพื่อดูภาพขยาย
+                itemDiv.onclick = function() {
+                    openLightbox(imgUrl);
+                };
+                
+                const imgElement = document.createElement('img');
+                imgElement.src = imgUrl;
+                imgElement.alt = `Memory ${index + 1}`;
+                
+                itemDiv.appendChild(imgElement);
+                galleryContainer.appendChild(itemDiv);
+            });
+            
+            // ใช้ Intersection Observer เพื่อตรวจดูว่าเลื่อนมาเจอรูปไหนแล้ว
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('animate-in');
+                        observer.unobserve(entry.target); // ทำงานครั้งเดียว
+                    }
+                });
+            }, { threshold: 0.1 }); // ตรวจสอบเมื่อรูปเห็นเพียง 10% ก็พอ
+
+            // สั่งให้ observer สังเกตรูปภาพทั้งหมด
+            const images = document.querySelectorAll('.gallery-item');
+            images.forEach((image) => {
+                observer.observe(image);
+            });
+        }
+
+        // ฟังก์ชันสั่งเริ่มอนิเมชั่นของรูปภาพชุดแรก
+        function animateImagesOnLoad() {
+            const initialImages = document.querySelectorAll('.gallery-item');
+            initialImages.forEach((image, index) => {
+                // delay เบาๆ ทีละรูป
+                setTimeout(() => {
+                    // หากรูปยังไม่โดน observe ทำงาน ก็ให้สั่งตรงนี้เลย
+                    if (!image.classList.contains('animate-in')) {
+                        image.classList.add('animate-in');
+                    }
+                }, (index + 2) * 200); // เริ่มหลังจากหน้าหลักปรากฏ 0.4 วินาที
+            });
+        }
+
+        // ฟังก์ชันเปิด Lightbox ดูภาพขยาย
+        function openLightbox(imgUrl) {
+            const lightbox = document.getElementById('lightbox');
+            const lightboxImg = document.getElementById('lightbox-img');
+            lightboxImg.src = imgUrl;
+            lightbox.classList.add('open');
+        }
+
+        // ฟังก์ชันปิด Lightbox
+        function closeLightbox() {
+            const lightbox = document.getElementById('lightbox');
+            lightbox.classList.remove('open');
+        }
+
+        // --- ส่วนเอฟเฟคพื้นหลังหัวใจ ---
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles = [];
+
+        function setSize() {
+            width = canvas.parentElement.clientWidth;
+            height = canvas.parentElement.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+
+        window.addEventListener('resize', setSize);
+        setSize(); // Set initial size
+
+        function createHeart() {
+            this.x = Math.random() * width;
+            this.y = -10;
+            this.size = Math.random() * 5 + 3;
+            this.speed = Math.random() * 1.5 + 0.5;
+            this.alpha = Math.random() * 0.3 + 0.1; // ความจางแบบมินิมอล
+            this.rotation = Math.random() * 0.1 - 0.05;
+            this.phase = Math.random() * Math.PI * 2;
+        }
+
+        createHeart.prototype.update = function() {
+            this.y += this.speed;
+            this.x += Math.sin(this.phase + this.y * 0.01) * 0.3; // เคลื่อนที่แบบส่ายเบาๆ
+            
+            // ลบออกถ้าพ้นหน้าจอ
+            if (this.y > height + 10) {
+                this.y = -10;
+                this.x = Math.random() * width;
+            }
+        };
+
+        createHeart.prototype.draw = function() {
+            // ใช้สีหัวใจโทนทองชมพูอ่อนๆ ให้เข้ากับธีม
+            ctx.fillStyle = `rgba(224, 199, 168, ${this.alpha})`; 
+            ctx.font = `${this.size}px serif`;
+            ctx.textAlign = 'center';
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.rotation);
+            ctx.fillText('🤍', 0, 0); // ใช้ unicode หัวใจแบบมินิมอล
+            ctx.restore();
+        };
+
+        for (let i = 0; i < 40; i++) {
+            particles.push(new createHeart());
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+    </script>
+</body>
+</html>
